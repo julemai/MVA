@@ -10,8 +10,8 @@ The sensitivities of the augmented model variables are used to draw conclusions 
 of the other "original" model parameters' sensitivities. The MVA method is already successfully 
 tested with two global SA methods: the variance-based Sobol' method and the moment-independent PAWN method. 
 
-## Step-by-step tutorial
-ToDo
+## Step-by-step Tutorial
+The step-by-step tutorial describes all the steps to estimate sensitivity indexes for (original) model variables and the augmented parameters. It also explains how to analyse these results and how to draw conclusions on the reliablility of the sensitivity indexes of the original model variables. Details can be found [here](https://github.com/julemai/MVA/wiki/Step-by-Step-Tutorial).
 
 ## Examples
 ToDo

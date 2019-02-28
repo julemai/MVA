@@ -1,6 +1,4 @@
-# MVA
-
-Model Variable Augmentation (MVA) for Diagnostic Assessment of Sensitivity Analysis Results <br>
+# Model Variable Augmentation (MVA) for Diagnostic Assessment of Sensitivity Analysis Results
 *by Juliane Mai and Bryan A Tolson (University of Waterloo, Canada)*
 
 ## Abstract

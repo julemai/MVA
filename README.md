@@ -15,9 +15,9 @@ The step-by-step tutorial describes all the steps to estimate sensitivity indexe
 
 ## Examples
 We provide some case studies to show how MVA can help:
-- to check the implementation of the sensitivity analysis method 
-- to obtain a robust ranking of the model variables
-- to estimate the uncertainty of the sensitivity indexes without the necessity of bootstrapping
+- to check the implementation of the sensitivity analysis method (see [here](https://github.com/julemai/MVA/wiki/Examples#sensitivity-analysis-method-implementation-check))
+- to obtain a robust ranking of the model variables (see [here](https://github.com/julemai/MVA/wiki/Examples#check-for-convergence-of-input-variable-importance-ranking))
+- to estimate the uncertainty of the sensitivity indexes without the necessity of bootstrapping (see [here](https://github.com/julemai/MVA/wiki/Examples#check-for-convergence-of-sensitivity-indexes))
 
 ## Citation
 J Mai and BA Tolson (2019): <br>

@@ -20,6 +20,7 @@ We provide some case studies to show how MVA can help:
 - to estimate the uncertainty of the sensitivity indexes without the necessity of bootstrapping (see [here](https://github.com/julemai/MVA/wiki/Examples#check-for-convergence-of-sensitivity-indexes))
 
 ## Citation
-J Mai and BA Tolson (2019): <br>
-Model Variable Augmentation (MVA) for Diagnostic Assessment of Sensitivity Analysis Results
-Water Resources Research, ??, ??–??.
+Mai, J., & Tolson, B. A. ( 2019). <br>
+Model Variable Augmentation (MVA) for diagnostic assessment of sensitivity analysis results. <br>
+*Water Resources Research*, 55, 2631– 2651.
+https://doi.org/10.1029/2018WR023382

@@ -22,5 +22,5 @@ We provide some case studies to show how MVA can help:
 ## Citation
 Mai, J., & Tolson, B. A. ( 2019). <br>
 Model Variable Augmentation (MVA) for diagnostic assessment of sensitivity analysis results. <br>
-*Water Resources Research*, 55, 2631– 2651.
+*Water Resources Research*, 55, 2631– 2651.<br>
 https://doi.org/10.1029/2018WR023382

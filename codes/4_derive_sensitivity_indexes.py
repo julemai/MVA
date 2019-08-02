@@ -31,7 +31,7 @@ from __future__ import print_function
 
 # An example calling sequence to calculate the sensitivity indexes for the previously derived model outputs. Technically this script works also with the original (non-augmented) model outputs. It will then derive the sensitivity indexes for the original model parameters only:
 #
-# python derive_sensitivity_indexes.py \
+# python 4_derive_sensitivity_indexes.py \
 #                  -i model_output_augmented.out \
 #                  -o sensitivity_indexes_augmented.out \
 #                  -n 1000 \
@@ -63,6 +63,7 @@ sys.path.append(dir_path+'/lib')
 import argparse
 import numpy as np
 import sobol_index              # in lib/
+import pawn_index               # in lib/
 
 nsets       = 10                                      # number of Sobol sequences
 infile      = 'model_output_augmented.out'            # name of file used to save (scalar) original model outputs
@@ -70,7 +71,10 @@ outfile     = 'sensitivity_indexes_augmented.out'     # name of file used to sav
 method      = ['sobol']                               # SA method that is going to be applied later:
 #                                                     # supported options:
 #                                                     #       'sobol'
-#                                                     #       ['pawn',Nf] where Nf is number of samples per approximated CDF
+#                                                     #       ['pawn',Nf,stat,alpha] where Nf is number of conditioning values in PAWN method
+#                                                     #                   Nf = parameter 'n' in Pianosi & Wagener (2015)
+#                                                     #                   stat = statistic used in PAWN
+#                                                     #                   alpha = confidence level of Kolmogorov-Smirnov test
 
 parser   = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                   description='''Calculate the sensitivity indexes for the previously derived model outputs stored in the file specified by -i. Technically this script works also with the original (non-augmented) model outputs. It will then derive the sensitivity indexes for the original model parameters only.''')
@@ -85,7 +89,7 @@ parser.add_argument('-n', '--nsets', action='store',
                     help='Number of sensitivity samples (default: nsets=10).')
 parser.add_argument('-m', '--method', action='store',
                     default=None, dest='method', metavar='method',
-                    help="SA method that is applied. Supported options are ['sobol'] and ['pawn',Nf] where Nf is number of samples per approximated CDF. (default: ['sobol']).")
+                    help="SA method that is applied. Supported options are ['sobol'] and ['pawn',Nf,stat,alpha] where Nf is number of conditioning values used for PAWN method (parameter 'n' in Pianosi & Wagener, 2015), stat is the statistic used (e.g., mean, median, or max), and alpha is the confidence level for the Kolmogorov-Smirnov test. (default: ['sobol']).")
 
 args     = parser.parse_args()
 infile   = args.infile
@@ -102,8 +106,10 @@ if args.method is not None:
     tmp = [ s.replace(']','').split(',') for s in tmp ][0]
     
     tmp[0] = str(tmp[0])
-    if len(tmp) == 2:
-        tmp[1] = np.int(tmp[1])
+    if tmp[0] == 'pawn':
+        tmp[1] = np.int(tmp[1])       # number of conditioning values 
+        tmp[2] = str(tmp[2])          # statistic: 'max', 'mean', or 'median'
+        tmp[3] = np.float(tmp[3])     # alpha
     method = tmp
 
 del parser, args
@@ -115,10 +121,10 @@ y_MVA = ff.readlines()
 ff.close()
 y_MVA = np.array(map(float,y_MVA))
 
-npara = np.shape(y_MVA)[0]/nsets - 2
-
 # derive c used for Eq. 2 and derived in Eq. 3 in Mai & Tolson (2019)
 if method[0] == 'sobol':
+
+    npara = np.shape(y_MVA)[0]/nsets - 2
     
     model_a = y_MVA[0:nsets]
     model_b = y_MVA[nsets:2*nsets]
@@ -126,7 +132,15 @@ if method[0] == 'sobol':
     
 elif method[0] == 'pawn':
 
-    print("ToDo: Sampling to run PAWN method")
+    nrepl      = method[1]   # number of conditioning values used in PAWN method (parameter "n" in Pianosi & Wagener, 2015)
+    pawn_stat  = method[2]
+    alpha      = method[3]
+    npara      = (np.shape(y_MVA)[0]-nsets) / (nrepl*nsets) 
+
+    uncond = y_MVA[0:nsets]
+    cond   = np.reshape(y_MVA[nsets:nsets+nrepl*nsets*(npara+3)],[npara,nrepl,nsets])   # shape is    [npara,nrepl,nsets]
+    #                                                                                   # needs to be [nrepl,npara,nsets]
+    cond   = np.swapaxes(cond,0,1)
     
 else:
     print('method = ',method[0])
@@ -149,13 +163,26 @@ if method[0] == 'sobol':
     print("sti = ",map(str,sti_MVA))
     print("")
 
-    ff.write("Si    STi \n")
+    ff.write("# Si    STi \n")
     for ipara in range(npara):
         ff.write(str(si_MVA[ipara]) +" "+str(sti_MVA[ipara])+" \n")
 
 elif method[0] == 'pawn':
 
-    print("ToDo: Sampling to run PAWN method")
+    pawn, influential = pawn_index.pawn_index(
+                uncond,
+                cond,
+                pawn_stat=pawn_stat,
+                alpha=alpha)
+
+    print("")
+    print("pawn index  = ",map(str,pawn))
+    print("influential = ",map(str,influential))
+    print("")
+
+    ff.write("# PAWN    Influential \n")
+    for ipara in range(npara):
+        ff.write(str(pawn[ipara]) +" "+str(influential[ipara])+" \n")
     
 else:
     print('method = ',method[0])

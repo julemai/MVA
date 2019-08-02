@@ -32,7 +32,7 @@ from __future__ import print_function
 # An example calling sequence to derive augmented model outputs based on original model outputs
 # and the sampled, augmented parameter sets:
 #
-# python calculate_augmented_model_outputs.py \
+# python 3_calculate_augmented_model_outputs.py \
 #                                -i model_output_original.out \
 #                                -a parameter_sets_augmented.out \
 #                                -o model_output_augmented.out \
@@ -77,7 +77,10 @@ delta       = 0.1                              # MVA parameter delta
 method      = ['sobol']                        # SA method that is going to be applied later:
 #                                              # supported options:
 #                                              #       'sobol'
-#                                              #       ['pawn',Nf] where Nf is number of samples per approximated CDF
+#                                              #       ['pawn',Nf,stat,alpha] where Nf is number of conditioning values in PAWN method
+#                                              #                   Nf = parameter 'n' in Pianosi & Wagener (2015)
+#                                              #                   stat = statistic used in PAWN
+#                                              #                   alpha = confidence level of Kolmogorov-Smirnov test
 
 parser   = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                   description='''Derives the augmented model outputs y_MVA based on: (a) the original model outputs y_Ori (saved in file specified with -i), (b) the sampled augmented parameters z0, z1, and z2 (saved in file given with -a) as well as (c) the MVA parameter delta (specified with -d).''')
@@ -98,7 +101,7 @@ parser.add_argument('-n', '--nsets', action='store',
                     help='Number of sensitivity samples (default: nsets=10).')
 parser.add_argument('-m', '--method', action='store',
                     default=None, dest='method', metavar='method',
-                    help="SA method that is going to be applied later. Supported options are ['sobol'] and ['pawn',Nf] where Nf is number of samples per approximated CDF. (default: ['sobol']).")
+                    help="SA method that is applied. Supported options are ['sobol'] and ['pawn',Nf,stat,alpha] where Nf is number of conditioning values used for PAWN method (parameter 'n' in Pianosi & Wagener, 2015), stat is the statistic used (e.g., mean, median, or max), and alpha is the confidence level for the Kolmogorov-Smirnov test. (default: ['sobol']).")
 
 args     = parser.parse_args()
 infile   = args.infile
@@ -116,8 +119,10 @@ if args.method is not None:
     tmp = [ s.replace(']','').split(',') for s in tmp ][0]
     
     tmp[0] = str(tmp[0])
-    if len(tmp) == 2:
-        tmp[1] = np.int(tmp[1])
+    if tmp[0] == 'pawn':
+        tmp[1] = np.int(tmp[1])       # number of conditioning values 
+        tmp[2] = str(tmp[2])          # statistic: 'max', 'mean', or 'median'
+        tmp[3] = np.float(tmp[3])     # alpha
     method = tmp
 
 del parser, args
@@ -137,25 +142,33 @@ y_ori = ff.readlines()
 ff.close()
 y_ori = np.array(map(float,y_ori))
 
-npara = np.shape(y_ori)[0]/nsets - 2
-
 # derive c used for Eq. 2 and derived in Eq. 3 in Mai & Tolson (2019)
 if method[0] == 'sobol':
+
+    npara = np.shape(y_ori)[0]/nsets - 2
     
     model_ori_a = y_ori[0:nsets]
     model_ori_b = y_ori[nsets:2*nsets]
+
+    mu_f  = np.mean(np.append(model_ori_a, model_ori_b))
+    mu_f2 = np.mean(np.append(model_ori_a**2,model_ori_b**2))
+    var_f = np.var(np.append(model_ori_a,model_ori_b))
     
 elif method[0] == 'pawn':
 
-    print("ToDo: Sampling to run PAWN method")
+    nrepl = method[1]   # number of conditioning values used in PAWN method (parameter "n" in Pianosi & Wagener, 2015)
+    npara = (np.shape(y_ori)[0]-nsets) / (nrepl*nsets) 
+    
+    model_ori_uncond = y_ori[0:nsets]
+
+    mu_f      = np.mean(model_ori_uncond)
+    mu_f2     = np.mean(model_ori_uncond**2)
+    var_f     = np.var(model_ori_uncond)
     
 else:
     print('method = ',method[0])
     raise ValueError('This method is not implemented yet! Only "sobol" and "pawn".')    
 
-mu_f  = np.mean(np.append(model_ori_a, model_ori_b))
-mu_f2 = np.mean(np.append(model_ori_a**2,model_ori_b**2))
-var_f = np.var(np.append(model_ori_a,model_ori_b))
 cc2   = (2.0*(mu_f2-mu_f**2)-2.0/3.0*delta**2*(var_f+mu_f**2)-var_f)/var_f
 if (cc2 < -0.5):
     print("")
@@ -177,8 +190,8 @@ if method[0] == 'sobol':
     y_MVA_a = 0.0*z0[0:nsets]       + z1[0:nsets]*model_ori_a       - z2[0:nsets]*model_ori_a       + cc*model_ori_a
     for iset in range(nsets):
         ff.write( str(y_MVA_a[iset])+'\n' )
-    y_MVA_b = 0.0*z0[nsets:2*nsets] + z1[nsets:2*nsets]*model_ori_b - z2[nsets:2*nsets]*model_ori_b + cc*model_ori_b
     # B sets
+    y_MVA_b = 0.0*z0[nsets:2*nsets] + z1[nsets:2*nsets]*model_ori_b - z2[nsets:2*nsets]*model_ori_b + cc*model_ori_b
     for iset in range(nsets):
         ff.write( str(y_MVA_b[iset])+'\n' )
     # Ci sets with original model variables
@@ -200,13 +213,40 @@ if method[0] == 'sobol':
 
 elif method[0] == 'pawn':
 
-    print("ToDo: Sampling to run PAWN method")
+    # derive augmented model output y_MVA as described in Eq. 2 in Mai & Tolson (2019)
+
+    # unconditional sets
+    y_MVA_uncond = 0.0*z0[0:nsets] + z1[0:nsets]*model_ori_uncond - z2[0:nsets]*model_ori_uncond + cc*model_ori_uncond
+    for iset in range(nsets):
+        ff.write( str(y_MVA_uncond[iset])+'\n' )
+
+    # conditional sets with original model variables
+    for ipara in range(npara):
+        for irepl in range(nrepl):
+
+            model_ori_cond =  y_ori[nsets*(1+ipara*nrepl+irepl):nsets*(2+ipara*nrepl+irepl)]
+            y_MVA_cond = 0.0*z0[0:nsets] + z1[0:nsets]*model_ori_cond - z2[0:nsets]*model_ori_cond + cc*model_ori_cond
+            for iset in range(nsets):
+                ff.write( str(y_MVA_cond[iset])+'\n' )
+
+    # conditional sets with augmented model variables
+    for ipara in range(3):
+        for irepl in range(nrepl):
+
+            y_MVA_cond = ( 0.0 * z0[nsets*(1+ipara*nrepl+irepl):nsets*(2+ipara*nrepl+irepl)]
+                               + z1[nsets*(1+ipara*nrepl+irepl):nsets*(2+ipara*nrepl+irepl)] * model_ori_uncond
+                               - z2[nsets*(1+ipara*nrepl+irepl):nsets*(2+ipara*nrepl+irepl)] * model_ori_uncond
+                               + cc * model_ori_uncond )
+                
+            for iset in range(nsets):
+                ff.write( str(y_MVA_cond[iset])+'\n' )
     
 else:
     print('method = ',method[0])
     raise ValueError('This method is not implemented yet! Only "sobol" and "pawn".')
 
 ff.close()
+print("")
 print("wrote:   '"+outfile+"'")
 
 

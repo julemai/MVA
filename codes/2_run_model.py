@@ -31,8 +31,8 @@ from __future__ import print_function
 
 # An example calling sequence to derive model outputs for Ishigami-Homa function (or any other model):
 #
-# python run_model.py -i parameter_sets_original.out \
-#                     -o model_output_original.out
+# python 2_run_model.py -i parameter_sets_original.out \
+#                       -o model_output_original.out
 
 """
 Runs a model for a bunch of parameter sets and stores the (scalar) model outputs in a file.

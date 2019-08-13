@@ -105,7 +105,7 @@ ff.close()
 ff = open(outfile, "w")
 
 for paraset in parasets:
-    paraset = map(float,paraset.strip().split())
+    paraset = list(map(float,paraset.strip().split()))
     model = model_function(paraset)
     ff.write(str(model)+'\n')
 

@@ -131,7 +131,7 @@ del parser, args
 ff = open(augfile, "r")
 zz = ff.readlines()
 ff.close()
-zz = np.array([ map(float,izz.strip().split()) for izz in zz ])
+zz = np.array([ list(map(float,izz.strip().split())) for izz in zz ])
 z0 = zz[:,0]
 z1 = zz[:,1]
 z2 = zz[:,2]
@@ -140,12 +140,12 @@ z2 = zz[:,2]
 ff = open(infile, "r")
 y_ori = ff.readlines()
 ff.close()
-y_ori = np.array(map(float,y_ori))
+y_ori = np.array(list(map(float,y_ori)))
 
 # derive c used for Eq. 2 and derived in Eq. 3 in Mai & Tolson (2019)
 if method[0] == 'sobol':
 
-    npara = np.shape(y_ori)[0]/nsets - 2
+    npara = np.int( np.shape(y_ori)[0]/nsets - 2 )
     
     model_ori_a = y_ori[0:nsets]
     model_ori_b = y_ori[nsets:2*nsets]

@@ -119,12 +119,12 @@ del parser, args
 ff = open(infile, "r")
 y_MVA = ff.readlines()
 ff.close()
-y_MVA = np.array(map(float,y_MVA))
+y_MVA = np.array(list(map(float,y_MVA)))
 
 # derive c used for Eq. 2 and derived in Eq. 3 in Mai & Tolson (2019)
 if method[0] == 'sobol':
 
-    npara = np.shape(y_MVA)[0]/nsets - 2
+    npara = np.int( np.shape(y_MVA)[0]/nsets - 2 )
     
     model_a = y_MVA[0:nsets]
     model_b = y_MVA[nsets:2*nsets]
@@ -135,7 +135,7 @@ elif method[0] == 'pawn':
     nrepl      = method[1]   # number of conditioning values used in PAWN method (parameter "n" in Pianosi & Wagener, 2015)
     pawn_stat  = method[2]
     alpha      = method[3]
-    npara      = (np.shape(y_MVA)[0]-nsets) / (nrepl*nsets) 
+    npara      = np.int(  (np.shape(y_MVA)[0]-nsets) / (nrepl*nsets) )
 
     uncond = y_MVA[0:nsets]
     cond   = np.reshape(y_MVA[nsets:nsets+nrepl*nsets*(npara+3)],[npara,nrepl,nsets])   # shape is    [npara,nrepl,nsets]
@@ -159,8 +159,8 @@ if method[0] == 'sobol':
                 method='Mai1999')
 
     print("")
-    print("si  = ",map(str,si_MVA))
-    print("sti = ",map(str,sti_MVA))
+    print("si  = ",list(map(str,si_MVA)))
+    print("sti = ",list(map(str,sti_MVA)))
     print("")
 
     ff.write("# Si    STi \n")
@@ -176,8 +176,8 @@ elif method[0] == 'pawn':
                 alpha=alpha)
 
     print("")
-    print("pawn index  = ",map(str,pawn))
-    print("influential = ",map(str,influential))
+    print("pawn index  = ",list(map(str,pawn)))
+    print("influential = ",list(map(str,influential)))
     print("")
 
     ff.write("# PAWN    Influential \n")

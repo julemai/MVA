@@ -2,6 +2,11 @@
 from   __future__ import print_function
 import numpy as np
 from   statsmodels.distributions.empirical_distribution import ECDF
+# statsmodels seems to have an issue with scipy under Python 3.x:
+# ticket:
+#     https://github.com/statsmodels/statsmodels/issues/5747
+# try:
+#     pip install statsmodels==0.10.0rc2 --pre
 
 def pawn_index( uncond, cond,
                 alpha=0.05,

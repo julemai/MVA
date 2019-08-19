@@ -157,7 +157,7 @@ if method[0] == 'sobol':
 elif method[0] == 'pawn':
 
     nrepl = method[1]   # number of conditioning values used in PAWN method (parameter "n" in Pianosi & Wagener, 2015)
-    npara = (np.shape(y_ori)[0]-nsets) / (nrepl*nsets) 
+    npara = np.int( (np.shape(y_ori)[0]-nsets) / (nrepl*nsets) )
     
     model_ori_uncond = y_ori[0:nsets]
 

@@ -213,7 +213,7 @@ elif method[0] == 'pawn':
     print("influential = ",list(map(str,influential)))
     print("")
 
-    ff.write("# PAWNi(1:"+str(ntime)+")    Influentiali(1:"+str(ntime)+") \n")
+    ff.write("# PAWN(1:"+str(ntime)+")    Influential(1:"+str(ntime)+") \n")
     for ipara in range(npara):
         ff.write(array_to_string(np.append(pawn[:,ipara],influential[:,ipara]),1))
     

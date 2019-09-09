@@ -109,7 +109,7 @@ def model_function(paraset):
     model = np.sin(paraset[0]) + a * np.sin(paraset[1])**2 + b * paraset[2]**4 * np.sin(paraset[0])
 
     # 1D model output
-    model = np.array( [np.sin(paraset[0]) + a * np.sin(paraset[1])**2 + b * paraset[2]**4 * np.sin(paraset[0]) for ii in range(8) ] )
+    # model = np.array( [np.sin(paraset[0]) + a * np.sin(paraset[1])**2 + b * paraset[2]**4 * np.sin(paraset[0]) for ii in range(8) ] )
     
     return model
 

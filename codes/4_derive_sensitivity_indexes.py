@@ -64,6 +64,7 @@ import argparse
 import numpy as np
 import sobol_index              # in lib/
 import pawn_index               # in lib/
+from autostring import astr     # in lib/
 
 nsets       = 10                                      # number of Sobol sequences
 infile      = 'model_output_augmented.out'            # name of file used to save (scalar) original model outputs
@@ -114,32 +115,56 @@ if args.method is not None:
 
 del parser, args
 
+def array_to_string(array_to_write,dim):
+
+    if dim == 0:
+        string = str(array_to_write)+'\n'
+    elif dim == 1:
+        string = ' '.join(astr(array_to_write,prec=8))+'\n'
+    else:
+        raise ValueError('3_calculate_augmented_model_outputs.py: Only scalar and 1-dimensional model outputs are supported yet!')
+    
+    return string
+
 
 # read original model outputs
 ff = open(infile, "r")
 y_MVA = ff.readlines()
 ff.close()
-y_MVA = np.array(list(map(float,y_MVA)))
+y_MVA = np.array([ list(map(float,ii.strip().split())) for ii in y_MVA ])
 
 # derive c used for Eq. 2 and derived in Eq. 3 in Mai & Tolson (2019)
 if method[0] == 'sobol':
 
     npara = np.int( np.shape(y_MVA)[0]/nsets - 2 )
-    
-    model_a = y_MVA[0:nsets]
-    model_b = y_MVA[nsets:2*nsets]
-    model_c = np.reshape(y_MVA[2*nsets:],[npara,nsets])
+    ntime = np.int( np.shape(y_MVA)[1] )
+
+    if ntime == 1:
+        model_a = y_MVA[0:nsets,0]
+        model_b = y_MVA[nsets:2*nsets,0]
+        model_c = np.reshape(y_MVA[2*nsets:],[npara,nsets])
+    else:
+        model_a = y_MVA[0:nsets]
+        model_b = y_MVA[nsets:2*nsets]
+        model_c = np.reshape(y_MVA[2*nsets:],[npara,nsets,ntime])
+
+        # time axis is expected to be first dimension
+        model_a   = np.swapaxes(model_a,0,1)      # [nsets,ntime] --> [ntime,nsets]
+        model_b   = np.swapaxes(model_b,0,1)      # [nsets,ntime] --> [ntime,nsets]
+        model_c   = np.swapaxes(model_c,0,2)      # [npara,nsets,ntime] --> [ntime,nsets,npara]
+        model_c   = np.swapaxes(model_c,1,2)      # [ntime,nsets,npara] --> [ntime,npara,nsets]
     
 elif method[0] == 'pawn':
 
     nrepl      = method[1]   # number of conditioning values used in PAWN method (parameter "n" in Pianosi & Wagener, 2015)
     pawn_stat  = method[2]
     alpha      = method[3]
-    npara      = np.int(  (np.shape(y_MVA)[0]-nsets) / (nrepl*nsets) )
+    npara      = np.int( (np.shape(y_MVA)[0]-nsets) / (nrepl*nsets) )
+    ntime      = np.int(  np.shape(y_MVA)[1] )
 
     uncond = y_MVA[0:nsets]
-    cond   = np.reshape(y_MVA[nsets:nsets+nrepl*nsets*(npara+3)],[npara,nrepl,nsets])   # shape is    [npara,nrepl,nsets]
-    #                                                                                   # needs to be [nrepl,npara,nsets]
+    cond   = np.reshape(y_MVA[nsets:nsets+nrepl*nsets*(npara+3)],[npara,nrepl,nsets,ntime])   # shape is    [npara,nrepl,nsets,ntime]
+    #                                                                                         # needs to be [nrepl,npara,nsets,ntime]
     cond   = np.swapaxes(cond,0,1)
     
 else:
@@ -163,26 +188,34 @@ if method[0] == 'sobol':
     print("sti = ",list(map(str,sti_MVA)))
     print("")
 
-    ff.write("# Si    STi \n")
+    ff.write("# Si(1:"+str(ntime)+")    STi(1:"+str(ntime)+") \n")
     for ipara in range(npara):
-        ff.write(str(si_MVA[ipara]) +" "+str(sti_MVA[ipara])+" \n")
+        if ntime == 1:
+            ff.write(array_to_string(np.append(si_MVA[ipara],sti_MVA[ipara]),1))
+        else:
+            ff.write(array_to_string(np.append(si_MVA[:,ipara],sti_MVA[:,ipara]),1))
 
 elif method[0] == 'pawn':
 
-    pawn, influential = pawn_index.pawn_index(
-                uncond,
-                cond,
-                pawn_stat=pawn_stat,
-                alpha=alpha)
+    pawn        = [[] for itime in range(ntime)]
+    influential = [[] for itime in range(ntime)]
+    for itime in range(ntime):
+        pawn[itime], influential[itime] = pawn_index.pawn_index(
+            uncond[:,itime],
+            cond[:,:,:,itime],
+            pawn_stat=pawn_stat,
+            alpha=alpha)
+    pawn        = np.array(pawn)
+    influential = np.array(influential)
 
     print("")
     print("pawn index  = ",list(map(str,pawn)))
     print("influential = ",list(map(str,influential)))
     print("")
 
-    ff.write("# PAWN    Influential \n")
+    ff.write("# PAWNi(1:"+str(ntime)+")    Influentiali(1:"+str(ntime)+") \n")
     for ipara in range(npara):
-        ff.write(str(pawn[ipara]) +" "+str(influential[ipara])+" \n")
+        ff.write(array_to_string(np.append(pawn[:,ipara],influential[:,ipara]),1))
     
 else:
     print('method = ',method[0])

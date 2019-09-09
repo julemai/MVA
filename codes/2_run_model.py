@@ -62,6 +62,7 @@ import numpy as np
 import scipy.stats as stats
 import copy
 import sobol                  # in lib/
+from autostring import astr   # in lib/
 
 infile      = 'parameter_sets_original.out'      # name of file containing sampled parameter sets to run the model
 outfile     = 'model_output_original.out'        # name of file used to save (scalar) model outputs
@@ -82,6 +83,18 @@ outfile  = args.outfile
 del parser, args
 
 
+def array_to_string(array_to_write,dim):
+
+    if dim == 0:
+        string = str(array_to_write)+'\n'
+    elif dim == 1:
+        string = ' '.join(astr(array_to_write,prec=8))+'\n'
+    else:
+        raise ValueError('2_run_model.py: Only scalar and 1-dimensional model outputs are supported yet!')
+    
+    return string
+
+
 def model_function(paraset):
     # function that takes parameter set and returns (scalar) model output
     # here: Ishigami-Homa function (Ishigami and Homma, [1990])
@@ -91,8 +104,12 @@ def model_function(paraset):
 
     a = 2.0
     b = 1.0
-    
+
+    # scalar model output
     model = np.sin(paraset[0]) + a * np.sin(paraset[1])**2 + b * paraset[2]**4 * np.sin(paraset[0])
+
+    # 1D model output
+    model = np.array( [np.sin(paraset[0]) + a * np.sin(paraset[1])**2 + b * paraset[2]**4 * np.sin(paraset[0]) for ii in range(8) ] )
     
     return model
 
@@ -107,7 +124,8 @@ ff = open(outfile, "w")
 for paraset in parasets:
     paraset = list(map(float,paraset.strip().split()))
     model = model_function(paraset)
-    ff.write(str(model)+'\n')
+
+    ff.write(array_to_string(model,len(np.shape(model))))
 
 ff.close()
 print("wrote:   '"+outfile+"'")

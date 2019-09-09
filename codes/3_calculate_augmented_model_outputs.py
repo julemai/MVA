@@ -68,6 +68,7 @@ sys.path.append(dir_path+'/lib')
 
 import argparse
 import numpy as np
+from autostring import astr   # in lib/
 
 nsets       = 10                               # number of Sobol sequences
 infile      = 'model_output_original.out'      # name of file used to save (scalar) original model outputs
@@ -109,6 +110,17 @@ outfile  = args.outfile
 delta    = np.float(args.delta)
 nsets    = np.int(args.nsets)
 
+def array_to_string(array_to_write,dim):
+
+    if dim == 0:
+        string = str(array_to_write)+'\n'
+    elif dim == 1:
+        string = ' '.join(astr(array_to_write,prec=8))+'\n'
+    else:
+        raise ValueError('3_calculate_augmented_model_outputs.py: Only scalar and 1-dimensional model outputs are supported yet!')
+    
+    return string
+
 # some arguments need some formatting
 if args.method is not None:
     tmp = args.method
@@ -127,20 +139,30 @@ if args.method is not None:
 
 del parser, args
 
+# read original model outputs
+ff = open(infile, "r")
+y_ori = ff.readlines()
+ff.close()
+y_ori = np.array([ list(map(float,ii.strip().split())) for ii in y_ori ])
+
+dim_modelout = len(np.shape(y_ori))-1      # dimension of model output: 0 --> scalar
+#                                          #                            1 --> 1-dimensional
+
 # read parameter sets for augmented variables z0, z1, z2
 ff = open(augfile, "r")
 zz = ff.readlines()
 ff.close()
 zz = np.array([ list(map(float,izz.strip().split())) for izz in zz ])
-z0 = zz[:,0]
-z1 = zz[:,1]
-z2 = zz[:,2]
-
-# read original model outputs
-ff = open(infile, "r")
-y_ori = ff.readlines()
-ff.close()
-y_ori = np.array(list(map(float,y_ori)))
+if dim_modelout == 0:
+    z0 = zz[:,0]
+    z1 = zz[:,1]
+    z2 = zz[:,2]
+elif dim_modelout == 1:
+    z0 = zz[:,0,np.newaxis]
+    z1 = zz[:,1,np.newaxis]
+    z2 = zz[:,2,np.newaxis]
+else:
+    raise ValueError('3_calculate_augmented_model_outputs.py: Only scalar and 1-dimensional model outputs are supported yet!')
 
 # derive c used for Eq. 2 and derived in Eq. 3 in Mai & Tolson (2019)
 if method[0] == 'sobol':
@@ -189,27 +211,29 @@ if method[0] == 'sobol':
     # A sets
     y_MVA_a = 0.0*z0[0:nsets]       + z1[0:nsets]*model_ori_a       - z2[0:nsets]*model_ori_a       + cc*model_ori_a
     for iset in range(nsets):
-        ff.write( str(y_MVA_a[iset])+'\n' )
+        ff.write(array_to_string(y_MVA_a[iset],dim_modelout))
     # B sets
     y_MVA_b = 0.0*z0[nsets:2*nsets] + z1[nsets:2*nsets]*model_ori_b - z2[nsets:2*nsets]*model_ori_b + cc*model_ori_b
     for iset in range(nsets):
-        ff.write( str(y_MVA_b[iset])+'\n' )
+        ff.write(array_to_string(y_MVA_b[iset],dim_modelout))
+
     # Ci sets with original model variables
     for ipara in range(npara):
         model_ori_ci = y_ori[nsets*(2+ipara):nsets*(3+ipara)]
         y_MVA_ci = 0.0*z0[0:nsets] + z1[0:nsets]*model_ori_ci - z2[0:nsets]*model_ori_ci + cc*model_ori_ci
         for iset in range(nsets):
-            ff.write( str(y_MVA_ci[iset])+'\n' )
+            ff.write(array_to_string(y_MVA_ci[iset],dim_modelout))
+
     # Ci sets with augmented model variables
     y_MVA_ci_z0 = 0.0*z0[nsets:2*nsets] + z1[0:nsets]*model_ori_a       - z2[0:nsets]*model_ori_a       + cc*model_ori_a
     y_MVA_ci_z1 = 0.0*z0[0:nsets]       + z1[nsets:2*nsets]*model_ori_a - z2[0:nsets]*model_ori_a       + cc*model_ori_a
     y_MVA_ci_z2 = 0.0*z0[0:nsets]       + z1[0:nsets]*model_ori_a       - z2[nsets:2*nsets]*model_ori_a + cc*model_ori_a
     for iset in range(nsets):
-        ff.write( str(y_MVA_ci_z0[iset])+'\n' )
+        ff.write(array_to_string(y_MVA_ci_z0[iset],dim_modelout))
     for iset in range(nsets):
-        ff.write( str(y_MVA_ci_z1[iset])+'\n' )
+        ff.write(array_to_string(y_MVA_ci_z1[iset],dim_modelout))
     for iset in range(nsets):
-        ff.write( str(y_MVA_ci_z2[iset])+'\n' )
+        ff.write(array_to_string(y_MVA_ci_z2[iset],dim_modelout))
 
 elif method[0] == 'pawn':
 
@@ -218,7 +242,7 @@ elif method[0] == 'pawn':
     # unconditional sets
     y_MVA_uncond = 0.0*z0[0:nsets] + z1[0:nsets]*model_ori_uncond - z2[0:nsets]*model_ori_uncond + cc*model_ori_uncond
     for iset in range(nsets):
-        ff.write( str(y_MVA_uncond[iset])+'\n' )
+        ff.write(array_to_string(y_MVA_uncond[iset],dim_modelout))
 
     # conditional sets with original model variables
     for ipara in range(npara):
@@ -227,7 +251,7 @@ elif method[0] == 'pawn':
             model_ori_cond =  y_ori[nsets*(1+ipara*nrepl+irepl):nsets*(2+ipara*nrepl+irepl)]
             y_MVA_cond = 0.0*z0[0:nsets] + z1[0:nsets]*model_ori_cond - z2[0:nsets]*model_ori_cond + cc*model_ori_cond
             for iset in range(nsets):
-                ff.write( str(y_MVA_cond[iset])+'\n' )
+                ff.write(array_to_string(y_MVA_cond[iset],dim_modelout))
 
     # conditional sets with augmented model variables
     for ipara in range(3):
@@ -239,7 +263,7 @@ elif method[0] == 'pawn':
                                + cc * model_ori_uncond )
                 
             for iset in range(nsets):
-                ff.write( str(y_MVA_cond[iset])+'\n' )
+                ff.write(array_to_string(y_MVA_cond[iset],dim_modelout))
     
 else:
     print('method = ',method[0])

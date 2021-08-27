@@ -4,7 +4,7 @@ from __future__ import print_function
 # Copyright 2019 Juliane Mai - juliane.mai(at)uwaterloo.ca
 #
 # License
-# This file is part of the code library for "Model Variable Augmentation (MVA) 
+# This file is part of the code library for "Model Variable Augmentation (MVA)
 # for Diagnostic Assessment of Sensitivity Analysis Results".
 #
 # The MVA code library is free software: you can redistribute it and/or modify
@@ -23,8 +23,8 @@ from __future__ import print_function
 #
 # If you use this method in a publication please cite:
 #
-#    Mai, J., & Tolson, B. A. ( 2019). 
-#    Model Variable Augmentation (MVA) for diagnostic assessment of sensitivity analysis results. 
+#    Mai, J., & Tolson, B. A. ( 2019).
+#    Model Variable Augmentation (MVA) for diagnostic assessment of sensitivity analysis results.
 #    Water Resources Research, 55, 2631-2651.
 #    https://doi.org/10.1029/2018WR023382
 
@@ -56,7 +56,7 @@ Written,  JM, Mar 2019
 # add subolder scripts/lib to search path
 # -----------------------
 import sys
-import os 
+import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path+'/lib')
 
@@ -95,7 +95,7 @@ parser.add_argument('-m', '--method', action='store',
 args     = parser.parse_args()
 infile   = args.infile
 outfile  = args.outfile
-nsets    = np.int(args.nsets)
+nsets    = int(args.nsets)
 
 # some arguments need some formatting
 if args.method is not None:
@@ -105,12 +105,12 @@ if args.method is not None:
     # '[pawn, 50]'  --> ['pawn',50]
     tmp = tmp.replace('[','').split('],')
     tmp = [ s.replace(']','').split(',') for s in tmp ][0]
-    
+
     tmp[0] = str(tmp[0])
     if tmp[0] == 'pawn':
-        tmp[1] = np.int(tmp[1])       # number of conditioning values 
+        tmp[1] = int(tmp[1])       # number of conditioning values
         tmp[2] = str(tmp[2])          # statistic: 'max', 'mean', or 'median'
-        tmp[3] = np.float(tmp[3])     # alpha
+        tmp[3] = float(tmp[3])     # alpha
     method = tmp
 
 del parser, args
@@ -123,7 +123,7 @@ def array_to_string(array_to_write,dim):
         string = ' '.join(astr(array_to_write,prec=8))+'\n'
     else:
         raise ValueError('3_calculate_augmented_model_outputs.py: Only scalar and 1-dimensional model outputs are supported yet!')
-    
+
     return string
 
 
@@ -136,8 +136,8 @@ y_MVA = np.array([ list(map(float,ii.strip().split())) for ii in y_MVA ])
 # derive c used for Eq. 2 and derived in Eq. 3 in Mai & Tolson (2019)
 if method[0] == 'sobol':
 
-    npara = np.int( np.shape(y_MVA)[0]/nsets - 2 )
-    ntime = np.int( np.shape(y_MVA)[1] )
+    npara = int( np.shape(y_MVA)[0]/nsets - 2 )
+    ntime = int( np.shape(y_MVA)[1] )
 
     if ntime == 1:
         model_a = y_MVA[0:nsets,0]
@@ -153,29 +153,29 @@ if method[0] == 'sobol':
         model_b   = np.swapaxes(model_b,0,1)      # [nsets,ntime] --> [ntime,nsets]
         model_c   = np.swapaxes(model_c,0,2)      # [npara,nsets,ntime] --> [ntime,nsets,npara]
         model_c   = np.swapaxes(model_c,1,2)      # [ntime,nsets,npara] --> [ntime,npara,nsets]
-    
+
 elif method[0] == 'pawn':
 
     nrepl      = method[1]   # number of conditioning values used in PAWN method (parameter "n" in Pianosi & Wagener, 2015)
     pawn_stat  = method[2]
     alpha      = method[3]
-    npara      = np.int( (np.shape(y_MVA)[0]-nsets) / (nrepl*nsets) )
-    ntime      = np.int(  np.shape(y_MVA)[1] )
+    npara      = int( (np.shape(y_MVA)[0]-nsets) / (nrepl*nsets) )
+    ntime      = int(  np.shape(y_MVA)[1] )
 
     uncond = y_MVA[0:nsets]
     cond   = np.reshape(y_MVA[nsets:nsets+nrepl*nsets*(npara+3)],[npara,nrepl,nsets,ntime])   # shape is    [npara,nrepl,nsets,ntime]
     #                                                                                         # needs to be [nrepl,npara,nsets,ntime]
     cond   = np.swapaxes(cond,0,1)
-    
+
 else:
     print('method = ',method[0])
-    raise ValueError('This method is not implemented yet! Only "sobol" and "pawn".')    
+    raise ValueError('This method is not implemented yet! Only "sobol" and "pawn".')
 
 # derive sensitivity index estimates with specified method
 ff = open(outfile, "w")
 
 if method[0] == 'sobol':
-    
+
     si_MVA, sti_MVA = sobol_index.sobol_index(
                 ya=model_a,
                 yb=model_b,
@@ -216,12 +216,10 @@ elif method[0] == 'pawn':
     ff.write("# PAWN(1:"+str(ntime)+")    Influential(1:"+str(ntime)+") \n")
     for ipara in range(npara):
         ff.write(array_to_string(np.append(pawn[:,ipara],influential[:,ipara]),1))
-    
+
 else:
     print('method = ',method[0])
     raise ValueError('This method is not implemented yet! Only "sobol" and "pawn".')
 
 ff.close()
 print("wrote:   '"+outfile+"'")
-
-

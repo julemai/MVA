@@ -4,7 +4,7 @@ from __future__ import print_function
 # Copyright 2019 Juliane Mai - juliane.mai(at)uwaterloo.ca
 #
 # License
-# This file is part of the code library for "Model Variable Augmentation (MVA) 
+# This file is part of the code library for "Model Variable Augmentation (MVA)
 # for Diagnostic Assessment of Sensitivity Analysis Results".
 #
 # The MVA code library is free software: you can redistribute it and/or modify
@@ -23,8 +23,8 @@ from __future__ import print_function
 #
 # If you use this method in a publication please cite:
 #
-#    Mai, J., & Tolson, B. A. ( 2019). 
-#    Model Variable Augmentation (MVA) for diagnostic assessment of sensitivity analysis results. 
+#    Mai, J., & Tolson, B. A. ( 2019).
+#    Model Variable Augmentation (MVA) for diagnostic assessment of sensitivity analysis results.
 #    Water Resources Research, 55, 2631-2651.
 #    https://doi.org/10.1029/2018WR023382
 
@@ -43,7 +43,7 @@ from __future__ import print_function
 """
 Derives the augmented model outputs y_MVA based on:
 - the original model outputs y_Ori (saved in file specified with -i),
-- the sampled augmented parameters z0, z1, and z2 (saved in file given with -a) as well as 
+- the sampled augmented parameters z0, z1, and z2 (saved in file given with -a) as well as
 - the MVA parameter delta (specified with -e).
 
 History
@@ -62,7 +62,7 @@ Written,  JM, Mar 2019
 # add subolder scripts/lib to search path
 # -----------------------
 import sys
-import os 
+import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path+'/lib')
 
@@ -107,8 +107,8 @@ parser.add_argument('-m', '--method', action='store',
 args     = parser.parse_args()
 infile   = args.infile
 outfile  = args.outfile
-delta    = np.float(args.delta)
-nsets    = np.int(args.nsets)
+delta    = float(args.delta)
+nsets    = int(args.nsets)
 
 def array_to_string(array_to_write,dim):
 
@@ -118,7 +118,7 @@ def array_to_string(array_to_write,dim):
         string = ' '.join(astr(array_to_write,prec=8))+'\n'
     else:
         raise ValueError('3_calculate_augmented_model_outputs.py: Only scalar and 1-dimensional model outputs are supported yet!')
-    
+
     return string
 
 # some arguments need some formatting
@@ -129,12 +129,12 @@ if args.method is not None:
     # '[pawn, 50]'  --> ['pawn',50]
     tmp = tmp.replace('[','').split('],')
     tmp = [ s.replace(']','').split(',') for s in tmp ][0]
-    
+
     tmp[0] = str(tmp[0])
     if tmp[0] == 'pawn':
-        tmp[1] = np.int(tmp[1])       # number of conditioning values 
+        tmp[1] = int(tmp[1])       # number of conditioning values
         tmp[2] = str(tmp[2])          # statistic: 'max', 'mean', or 'median'
-        tmp[3] = np.float(tmp[3])     # alpha
+        tmp[3] = float(tmp[3])     # alpha
     method = tmp
 
 del parser, args
@@ -167,29 +167,29 @@ else:
 # derive c used for Eq. 2 and derived in Eq. 3 in Mai & Tolson (2019)
 if method[0] == 'sobol':
 
-    npara = np.int( np.shape(y_ori)[0]/nsets - 2 )
-    
+    npara = int( np.shape(y_ori)[0]/nsets - 2 )
+
     model_ori_a = y_ori[0:nsets]
     model_ori_b = y_ori[nsets:2*nsets]
 
     mu_f  = np.mean(np.append(model_ori_a, model_ori_b))
     mu_f2 = np.mean(np.append(model_ori_a**2,model_ori_b**2))
     var_f = np.var(np.append(model_ori_a,model_ori_b))
-    
+
 elif method[0] == 'pawn':
 
     nrepl = method[1]   # number of conditioning values used in PAWN method (parameter "n" in Pianosi & Wagener, 2015)
-    npara = np.int( (np.shape(y_ori)[0]-nsets) / (nrepl*nsets) )
-    
+    npara = int( (np.shape(y_ori)[0]-nsets) / (nrepl*nsets) )
+
     model_ori_uncond = y_ori[0:nsets]
 
     mu_f      = np.mean(model_ori_uncond)
     mu_f2     = np.mean(model_ori_uncond**2)
     var_f     = np.var(model_ori_uncond)
-    
+
 else:
     print('method = ',method[0])
-    raise ValueError('This method is not implemented yet! Only "sobol" and "pawn".')    
+    raise ValueError('This method is not implemented yet! Only "sobol" and "pawn".')
 
 cc2   = (2.0*(mu_f2-mu_f**2)-2.0/3.0*delta**2*(var_f+mu_f**2)-var_f)/var_f
 if (cc2 < -0.5):
@@ -206,7 +206,7 @@ else:
 ff = open(outfile, "w")
 
 if method[0] == 'sobol':
-    
+
     # derive augmented model output y_MVA as described in Eq. 2 in Mai & Tolson (2019)
     # A sets
     y_MVA_a = 0.0*z0[0:nsets]       + z1[0:nsets]*model_ori_a       - z2[0:nsets]*model_ori_a       + cc*model_ori_a
@@ -261,10 +261,10 @@ elif method[0] == 'pawn':
                                + z1[nsets*(1+ipara*nrepl+irepl):nsets*(2+ipara*nrepl+irepl)] * model_ori_uncond
                                - z2[nsets*(1+ipara*nrepl+irepl):nsets*(2+ipara*nrepl+irepl)] * model_ori_uncond
                                + cc * model_ori_uncond )
-                
+
             for iset in range(nsets):
                 ff.write(array_to_string(y_MVA_cond[iset],dim_modelout))
-    
+
 else:
     print('method = ',method[0])
     raise ValueError('This method is not implemented yet! Only "sobol" and "pawn".')
@@ -272,5 +272,3 @@ else:
 ff.close()
 print("")
 print("wrote:   '"+outfile+"'")
-
-
